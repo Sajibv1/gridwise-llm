@@ -7,3 +7,5 @@ __pycache__/
 coverage.xml
 htmlcov/
 
+# Competition problem statements are retained locally but must not be published.
+*.pdf
