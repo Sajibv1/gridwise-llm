@@ -106,12 +106,13 @@ tag or digest in the submission form; do not use an untested `latest` tag as the
 
 ## Azure Container Apps deployment
 
-The Azure resource group `gridwise-fest-rg` and environment `gridwise-fest-env` already exist in the permitted East Asia
-region. After publishing an image, open Azure Cloud Shell and run:
+The Azure resource group `gridwise-fest-rg` exists. Create a Container Apps environment in an Azure subscription region
+that is also suitable for the selected LLM provider, then deploy from Azure Cloud Shell:
 
 ```bash
-chmod +x deploy/azure-containerapp.sh
-IMAGE=ghcr.io/OWNER/gridwise-llm:TAG ./deploy/azure-containerapp.sh
+az containerapp env create --name gridwise-fest-id-env --resource-group gridwise-fest-rg --location indonesiacentral
+ENVIRONMENT=gridwise-fest-id-env APP_NAME=gridwise-api-id \
+  IMAGE=ghcr.io/OWNER/gridwise-llm:TAG bash deploy/azure-containerapp.sh
 ```
 
 The script reads the API key without echoing it, writes it as an Azure Container Apps secret, starts one replica to avoid

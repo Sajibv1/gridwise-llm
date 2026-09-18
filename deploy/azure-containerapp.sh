@@ -6,9 +6,9 @@ set -euo pipefail
 : "${IMAGE:?Set IMAGE, e.g. ghcr.io/OWNER/gridwise-llm:2026-09-18}"
 : "${OPENAI_MODEL:=gpt-4.1-mini}"
 
-RESOURCE_GROUP="gridwise-fest-rg"
-ENVIRONMENT="gridwise-fest-env"
-APP_NAME="gridwise-api"
+: "${RESOURCE_GROUP:=gridwise-fest-rg}"
+: "${ENVIRONMENT:=gridwise-fest-env}"
+: "${APP_NAME:=gridwise-api}"
 
 read -r -s -p "OpenAI API key: " OPENAI_API_KEY
 echo
@@ -29,4 +29,3 @@ az containerapp create \
   --env-vars "OPENAI_API_KEY=secretref:openai-api-key" "OPENAI_MODEL=$OPENAI_MODEL" \
   --query properties.configuration.ingress.fqdn \
   --output tsv
-
