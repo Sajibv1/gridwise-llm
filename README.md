@@ -21,6 +21,11 @@ The LLM is mandatory and is part of the operator-note interpretation path. It ne
 directly changes the optimizer. Its output is rejected unless deterministic code verifies note mapping, type, hour order,
 numeric ranges, applies semantics, and the exact adjustment shape.
 
+The evaluated deployment uses the pinned `gpt-5.4-mini-2026-03-17` snapshot with low reasoning effort. If an otherwise
+schema-valid LLM output violates deterministic directive rules, GridWise permits one repair attempt with only the local
+validation reason, then rejects any remaining invalid result. It never retries invalid user input, infeasible schedules,
+or the optimizer.
+
 ## Supported operator directives
 
 | Type | Adjustment |
@@ -51,6 +56,7 @@ In another terminal:
 ```bash
 curl http://localhost:8000/health
 python scripts/verify_public_samples.py http://localhost:8000
+python scripts/verify_semantic_paraphrases.py http://localhost:8000
 ```
 
 Expected health response:
@@ -60,7 +66,8 @@ Expected health response:
 ```
 
 The public-case verifier posts all ten supplied cases, replays every returned plan, checks returned totals, and compares
-cost with the published optimal reference. It does not rely on hard-coded phrases or schedules in production code.
+cost with the published optimal reference. The semantic-paraphrase verifier separately tests time boundaries, percentage
+wording, duration phrasing, and an injection-style distractor. Neither test verifier is used by production code.
 
 ## API
 
@@ -93,6 +100,8 @@ rule and all aggregate values within the challenge’s 0.01 tolerance.
 - Operator notes are untrusted quoted data; prompt-injection-like text is never followed as an instruction.
 - The interpreter has no tools, file access, network actions, or secrets in its input.
 - Strict JSON-schema output prevents free-form control data, and deterministic validation checks all remaining semantics.
+- The model has concise calibration examples for paraphrases, whole-hour time windows, and percentage interpretation;
+  it gets one bounded semantic repair attempt only after local validation rejects its output.
 - The service logs neither API keys nor operator-note contents by default.
 - `OPENAI_API_KEY` is read from an environment variable or Azure secret reference only.
 

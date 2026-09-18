@@ -77,12 +77,16 @@ jobs:
       - name: Deploy the immutable image digest
         env:
           IMAGE: ${{ steps.image.outputs.name }}@${{ steps.build.outputs.digest }}
+          OPENAI_MODEL: gpt-5.4-mini-2026-03-17
+          OPENAI_REASONING_EFFORT: low
+          LLM_SEMANTIC_RETRIES: "1"
         run: |
           az extension add --name containerapp --upgrade --yes
           az containerapp update \
             --name gridwise-api-id \
             --resource-group gridwise-fest-rg \
-            --image "$IMAGE"
+            --image "$IMAGE" \
+            --set-env-vars "OPENAI_MODEL=$OPENAI_MODEL" "OPENAI_REASONING_EFFORT=$OPENAI_REASONING_EFFORT" "LLM_SEMANTIC_RETRIES=$LLM_SEMANTIC_RETRIES"
 
       - name: Check deployed public health endpoint
         run: |

@@ -4,7 +4,9 @@
 set -euo pipefail
 
 : "${IMAGE:?Set IMAGE, e.g. ghcr.io/OWNER/gridwise-llm:2026-09-18}"
-: "${OPENAI_MODEL:=gpt-4.1-mini}"
+: "${OPENAI_MODEL:=gpt-5.4-mini-2026-03-17}"
+: "${OPENAI_REASONING_EFFORT:=low}"
+: "${LLM_SEMANTIC_RETRIES:=1}"
 
 : "${RESOURCE_GROUP:=gridwise-fest-rg}"
 : "${ENVIRONMENT:=gridwise-fest-env}"
@@ -26,6 +28,6 @@ az containerapp create \
   --min-replicas 1 \
   --max-replicas 2 \
   --secrets "openai-api-key=$OPENAI_API_KEY" \
-  --env-vars "OPENAI_API_KEY=secretref:openai-api-key" "OPENAI_MODEL=$OPENAI_MODEL" \
+  --env-vars "OPENAI_API_KEY=secretref:openai-api-key" "OPENAI_MODEL=$OPENAI_MODEL" "OPENAI_REASONING_EFFORT=$OPENAI_REASONING_EFFORT" "LLM_SEMANTIC_RETRIES=$LLM_SEMANTIC_RETRIES" \
   --query properties.configuration.ingress.fqdn \
   --output tsv
