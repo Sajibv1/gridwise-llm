@@ -8,9 +8,12 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688)
 ![Solver](https://img.shields.io/badge/solver-SciPy%20HiGHS-orange)
 
-**Team:** Infinity Loop SEU
-**Live endpoint:** `https://gridwise-api-id.yellowocean-23e36385.indonesiacentral.azurecontainerapps.io`
-**Docker fallback (immutable):** `ghcr.io/sajibv1/gridwise-llm@sha256:80d85cf9e5dc9512ef146317ff31428c773915afdd4f95aa24f44b27bcb7dfb9`
+| Project detail | Link / value |
+| --- | --- |
+| Team | **Infinity Loop SEU** |
+| Live API | [gridwise-api-id.yellowocean-23e36385.indonesiacentral.azurecontainerapps.io](https://gridwise-api-id.yellowocean-23e36385.indonesiacentral.azurecontainerapps.io/) |
+| Interactive docs | [Open Swagger UI](https://gridwise-api-id.yellowocean-23e36385.indonesiacentral.azurecontainerapps.io/docs) |
+| Docker fallback | [`ghcr.io/sajibv1/gridwise-llm@sha256:80d85cf9e5dc9512ef146317ff31428c773915afdd4f95aa24f44b27bcb7dfb9`](https://github.com/Sajibv1/gridwise-llm/pkgs/container/gridwise-llm) |
 
 ---
 
