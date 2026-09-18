@@ -7,7 +7,9 @@ on:
 
 concurrency:
   group: gridwise-main
-  cancel-in-progress: true
+  # Azure Container Apps keeps an update running after GitHub cancels a job.
+  # Queue later pushes so they cannot strand the resource in provisioning state.
+  cancel-in-progress: false
 
 permissions:
   contents: read
