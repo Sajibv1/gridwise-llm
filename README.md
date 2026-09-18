@@ -3,6 +3,8 @@
 Public HTTP service for the BUP CSE Fest 2026 GridWise preliminary. It converts one to three natural-language operator
 notes into validated constraints, then returns a least-cost, feasible 24-hour campus energy schedule.
 
+Built by **Infinity Loop SEU**.
+
 ## Architecture
 
 ```text

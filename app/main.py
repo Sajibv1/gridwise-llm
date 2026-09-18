@@ -87,7 +87,7 @@ def create_app(
         title="GridWise LLM Energy Optimizer",
         version="0.1.0",
         description=OPENAPI_DESCRIPTION,
-        contact={"name": "GridWise CSE Fest team"},
+        contact={"name": "Infinity Loop SEU"},
         openapi_tags=[
             {
                 "name": "Service health",
