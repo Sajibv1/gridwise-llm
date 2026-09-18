@@ -84,11 +84,24 @@ jobs:
           LLM_SEMANTIC_RETRIES: "1"
         run: |
           az extension add --name containerapp --upgrade --yes
-          az containerapp update \
-            --name gridwise-api-id \
-            --resource-group gridwise-fest-rg \
-            --image "$IMAGE" \
-            --set-env-vars "OPENAI_MODEL=$OPENAI_MODEL" "OPENAI_REASONING_EFFORT=$OPENAI_REASONING_EFFORT" "LLM_TIMEOUT_SECONDS=$LLM_TIMEOUT_SECONDS" "LLM_MAX_RETRIES=$LLM_MAX_RETRIES" "LLM_SEMANTIC_RETRIES=$LLM_SEMANTIC_RETRIES"
+          # A cancelled GitHub run can leave Azure finishing the prior revision.
+          # Retry its transient operation-in-progress response rather than treating
+          # a healthy application's rollout as a failed deployment.
+          for attempt in 1 2 3 4 5 6; do
+            if az containerapp update \
+              --name gridwise-api-id \
+              --resource-group gridwise-fest-rg \
+              --image "$IMAGE" \
+              --set-env-vars "OPENAI_MODEL=$OPENAI_MODEL" "OPENAI_REASONING_EFFORT=$OPENAI_REASONING_EFFORT" "LLM_TIMEOUT_SECONDS=$LLM_TIMEOUT_SECONDS" "LLM_MAX_RETRIES=$LLM_MAX_RETRIES" "LLM_SEMANTIC_RETRIES=$LLM_SEMANTIC_RETRIES"; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 6 ]; then
+              echo "Azure Container Apps update did not finish after six attempts." >&2
+              exit 1
+            fi
+            echo "Azure revision is still provisioning; retrying in 20 seconds (attempt $attempt of 6)."
+            sleep 20
+          done
 
       - name: Check deployed public health endpoint
         run: |
