@@ -4,6 +4,8 @@
 set -euo pipefail
 
 : "${GITHUB_REPOSITORY:=Sajibv1/gridwise-llm}"
+: "${GITHUB_OWNER_ID:=215350998}"
+: "${GITHUB_REPOSITORY_ID:=1375947266}"
 : "${RESOURCE_GROUP:=gridwise-fest-rg}"
 : "${ENTRA_APP_NAME:=gridwise-github-deployer}"
 
@@ -35,12 +37,22 @@ FEDERATED_CREDENTIAL_COUNT="$(az ad app federated-credential list \
   --id "$APP_OBJECT_ID" \
   --query "length([?name=='${FEDERATED_CREDENTIAL_NAME}'])" \
   --output tsv)"
+FEDERATED_SUBJECT="repo:${GITHUB_REPOSITORY%%/*}@${GITHUB_OWNER_ID}/${GITHUB_REPOSITORY#*/}@${GITHUB_REPOSITORY_ID}:ref:refs/heads/main"
+FEDERATED_CREDENTIAL_JSON="$(printf \
+  '{"issuer":"https://token.actions.githubusercontent.com","subject":"%s","description":"GitHub Actions deployment from main","audiences":["api://AzureADTokenExchange"]}' \
+  "$FEDERATED_SUBJECT")"
 if [[ "$FEDERATED_CREDENTIAL_COUNT" == "0" ]]; then
   FEDERATED_CREDENTIAL_JSON="$(printf \
-    '{"name":"%s","issuer":"https://token.actions.githubusercontent.com","subject":"repo:%s:ref:refs/heads/main","description":"GitHub Actions deployment from main","audiences":["api://AzureADTokenExchange"]}' \
-    "$FEDERATED_CREDENTIAL_NAME" "$GITHUB_REPOSITORY")"
+    '{"name":"%s",%s' \
+    "$FEDERATED_CREDENTIAL_NAME" "${FEDERATED_CREDENTIAL_JSON#\{}")"
   az ad app federated-credential create \
     --id "$APP_OBJECT_ID" \
+    --parameters "$FEDERATED_CREDENTIAL_JSON" \
+    --only-show-errors >/dev/null
+else
+  az ad app federated-credential update \
+    --id "$APP_OBJECT_ID" \
+    --federated-credential-id "$FEDERATED_CREDENTIAL_NAME" \
     --parameters "$FEDERATED_CREDENTIAL_JSON" \
     --only-show-errors >/dev/null
 fi

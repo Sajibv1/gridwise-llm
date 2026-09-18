@@ -143,8 +143,8 @@ The one-time Azure setup uses GitHub OIDC rather than an Azure password or clien
 bash deploy/bootstrap-github-oidc.sh
 ```
 
-It creates a Microsoft Entra application trusted only for this repository's `main` branch and assigns it Contributor
-only on `gridwise-fest-rg`. Add the three printed identifiers as GitHub repository secrets. The deploy job in
+It creates a Microsoft Entra application trusted only for this repository's immutable `main` branch identity and assigns
+it Contributor only on `gridwise-fest-rg`. Add the three printed identifiers as GitHub repository secrets. The deploy job in
 `.github/workflows/quality.yml` publishes a commit-SHA image and, only after the quality gate passes, updates
 `gridwise-api-id` by immutable digest and checks its public health endpoint. A later push cancels an older in-flight
 deployment so an older revision cannot overwrite a newer one.

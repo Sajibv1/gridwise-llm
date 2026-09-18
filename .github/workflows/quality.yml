@@ -79,10 +79,6 @@ jobs:
           IMAGE: ${{ steps.image.outputs.name }}@${{ steps.build.outputs.digest }}
         run: |
           az extension add --name containerapp --upgrade --yes
-          az containerapp registry set \
-            --name gridwise-api-id \
-            --resource-group gridwise-fest-rg \
-            --server ghcr.io
           az containerapp update \
             --name gridwise-api-id \
             --resource-group gridwise-fest-rg \
