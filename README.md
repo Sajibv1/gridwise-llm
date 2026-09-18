@@ -62,6 +62,8 @@ cost with the published optimal reference. It does not rely on hard-coded phrase
 
 ## API
 
+Interactive Swagger documentation is available at `/docs`; the machine-readable OpenAPI document is at `/openapi.json`.
+
 ### `GET /health`
 
 Returns HTTP 200 and `{"status":"ok"}` once the service process is running.

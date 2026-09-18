@@ -50,3 +50,23 @@ def test_invalid_request_is_http_400() -> None:
     response = TestClient(app).post("/optimize-energy", json={"scenario_id": "missing everything"})
     assert response.status_code == 400
     assert response.json() == {"detail": "malformed or structurally invalid request"}
+
+
+def test_openapi_documentation_has_descriptions_and_a_valid_request_example() -> None:
+    app = create_app(Settings(), ReferenceInterpreter([]))
+    document = TestClient(app).get("/openapi.json").json()
+
+    assert "deterministically" in document["info"]["description"]
+    assert document["paths"]["/health"]["get"]["operationId"] == "getHealth"
+    optimize_operation = document["paths"]["/optimize-energy"]["post"]
+    assert optimize_operation["operationId"] == "optimizeEnergy"
+    assert optimize_operation["summary"] == "Interpret notes and optimize a 24-hour energy plan"
+    example = optimize_operation["requestBody"]["content"]["application/json"]["examples"][
+        "two_directives"
+    ]["value"]
+    assert len(example["hours"]) == 24
+    assert example["hours"][0]["hour"] == 0
+    assert example["hours"][-1]["hour"] == 23
+    assert document["components"]["schemas"]["OptimizationRequest"]["properties"]["operator_notes"][
+        "description"
+    ]

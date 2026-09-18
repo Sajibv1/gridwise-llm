@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Body, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
@@ -12,6 +12,55 @@ from app.interpreter import InterpretationProvider, InterpretationProviderError,
 from app.models import ErrorResponse, OptimizationRequest, OptimizationResponse
 from app.optimizer import OptimizationError, optimize_schedule
 from app.replay import ReplayValidationError, replay_plan
+
+OPENAPI_DESCRIPTION = """\
+Optimize a campus's 24-hour electricity cost while satisfying hourly demand, solar availability, battery limits, and
+validated operator constraints.
+
+### How a request is processed
+
+1. **Validate** the exact 24-hour input contract.
+2. **Interpret** one to three untrusted operator notes with a structured-output LLM.
+3. **Validate deterministically** that each interpretation is one of the allowed directive types.
+4. **Optimize** the schedule with a linear program, then independently replay every constraint before returning JSON.
+
+The LLM never chooses the schedule and has no tools. Time windows use a 24-hour clock, are start-inclusive and
+end-exclusive, and a solar-reduction factor means the usable fraction **remaining** (for example, 80% reduction = 0.2).
+"""
+
+OPENAPI_REQUEST_EXAMPLE = {
+    "scenario_id": "swagger-demo",
+    "operator_notes": [
+        "Rooftop panels are being cleaned from noon until 2 PM; only 25% of the forecast solar is usable then.",
+        "Keep at least 50 kWh in the battery between 6 PM and 9 PM.",
+    ],
+    "hours": [
+        {
+            "hour": hour,
+            "demand_kwh": 180.0,
+            "solar_kwh": 45.0 if 8 <= hour <= 16 else 0.0,
+            "tariff_bdt_per_kwh": 9.5 if 18 <= hour <= 22 else 6.5,
+        }
+        for hour in range(24)
+    ],
+    "battery": {
+        "capacity_kwh": 200.0,
+        "initial_energy_kwh": 100.0,
+        "minimum_energy_kwh": 30.0,
+        "max_charge_kwh_per_hour": 50.0,
+        "max_discharge_kwh_per_hour": 50.0,
+    },
+}
+
+OPTIMIZE_REQUEST_BODY = Body(
+    openapi_examples={
+        "two_directives": {
+            "summary": "Solar reduction and evening battery reserve",
+            "description": "A complete valid 24-hour request with two notes that require LLM interpretation.",
+            "value": OPENAPI_REQUEST_EXAMPLE,
+        }
+    }
+)
 
 
 def _summary(interpreted_count: int, response: OptimizationResponse) -> str:
@@ -37,8 +86,21 @@ def create_app(
     app = FastAPI(
         title="GridWise LLM Energy Optimizer",
         version="0.1.0",
+        description=OPENAPI_DESCRIPTION,
+        contact={"name": "GridWise CSE Fest team"},
+        openapi_tags=[
+            {
+                "name": "Service health",
+                "description": "Readiness endpoint used by the judging harness and deployment probes.",
+            },
+            {
+                "name": "Energy optimization",
+                "description": "LLM-assisted directive interpretation with deterministic optimization and replay validation.",
+            },
+        ],
         docs_url="/docs",
         redoc_url=None,
+        swagger_ui_parameters={"defaultModelsExpandDepth": 1, "displayRequestDuration": True},
     )
     app.state.settings = settings
     app.state.interpreter = interpreter
@@ -50,20 +112,55 @@ def create_app(
             content={"detail": "malformed or structurally invalid request"},
         )
 
-    @app.get("/health", response_model=dict[str, str], responses={500: {"model": ErrorResponse}})
+    @app.get(
+        "/health",
+        response_model=dict[str, str],
+        summary="Check service readiness",
+        description="Returns 200 as soon as this API process is ready to accept requests. It does not call the LLM.",
+        response_description="The service is ready.",
+        operation_id="getHealth",
+        tags=["Service health"],
+        responses={
+            200: {
+                "description": "The service is ready.",
+                "content": {"application/json": {"example": {"status": "ok"}}},
+            },
+            500: {"model": ErrorResponse, "description": "Unexpected service failure."},
+        },
+    )
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
     @app.post(
         "/optimize-energy",
         response_model=OptimizationResponse,
+        summary="Interpret notes and optimize a 24-hour energy plan",
+        description=(
+            "Accepts exactly 24 hourly records and one to three operator notes. The response contains a structured "
+            "interpretation for every note and a feasible least-cost plan. Returned totals are recomputed from the "
+            "hourly plan before the response is sent."
+        ),
+        response_description="Replay-validated 24-hour optimization result.",
+        operation_id="optimizeEnergy",
+        tags=["Energy optimization"],
         responses={
-            400: {"model": ErrorResponse},
-            422: {"model": ErrorResponse},
-            500: {"model": ErrorResponse},
+            400: {
+                "model": ErrorResponse,
+                "description": "Malformed JSON or a request that does not match the exact input contract.",
+            },
+            422: {
+                "model": ErrorResponse,
+                "description": "The scenario is infeasible under the validated constraints.",
+            },
+            500: {
+                "model": ErrorResponse,
+                "description": "Controlled provider, interpretation, or internal validation failure. No secrets are exposed.",
+            },
         },
     )
-    def optimize_energy(payload: OptimizationRequest) -> OptimizationResponse:
+    def optimize_energy(
+        payload: OptimizationRequest = OPTIMIZE_REQUEST_BODY,
+    ) -> OptimizationResponse:
         provider = app.state.interpreter
         if provider is None:
             try:

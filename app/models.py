@@ -25,19 +25,27 @@ class BatteryAction(str, Enum):
 class HoursAdjustment(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    hours: list[int]
+    hours: list[int] = Field(
+        description="Affected 24-hour clock indices, in ascending order. Windows are start-inclusive and end-exclusive."
+    )
 
 
 class SolarReductionAdjustment(HoursAdjustment):
-    factor: float
+    factor: float = Field(
+        description="Usable solar fraction remaining after the reduction. For example, an 80% reduction is 0.2."
+    )
 
 
 class MinimumBatteryReserveAdjustment(HoursAdjustment):
-    minimum_energy_kwh: float
+    minimum_energy_kwh: float = Field(
+        description="Minimum battery energy that must remain after each affected hour, in kWh."
+    )
 
 
 class MaxGridWindowAdjustment(HoursAdjustment):
-    max_grid_kwh: float
+    max_grid_kwh: float = Field(
+        description="Maximum permitted grid energy in each affected hour, in kWh."
+    )
 
 
 DirectiveAdjustment = (
@@ -51,10 +59,14 @@ DirectiveAdjustment = (
 class HourInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    hour: int = Field(ge=0, le=23)
-    demand_kwh: float = Field(ge=0)
-    solar_kwh: float = Field(ge=0)
-    tariff_bdt_per_kwh: float = Field(ge=0)
+    hour: int = Field(ge=0, le=23, description="Hour index on a 24-hour clock, from 0 through 23.")
+    demand_kwh: float = Field(ge=0, description="Campus energy demand for this hour, in kWh.")
+    solar_kwh: float = Field(
+        ge=0, description="Forecast solar generation before operator-note adjustments, in kWh."
+    )
+    tariff_bdt_per_kwh: float = Field(
+        ge=0, description="Grid tariff for this hour, in BDT per kWh."
+    )
 
     @field_validator("demand_kwh", "solar_kwh", "tariff_bdt_per_kwh")
     @classmethod
@@ -67,11 +79,17 @@ class HourInput(BaseModel):
 class BatteryInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    capacity_kwh: float = Field(gt=0)
-    initial_energy_kwh: float = Field(ge=0)
-    minimum_energy_kwh: float = Field(ge=0)
-    max_charge_kwh_per_hour: float = Field(ge=0)
-    max_discharge_kwh_per_hour: float = Field(ge=0)
+    capacity_kwh: float = Field(gt=0, description="Usable battery capacity, in kWh.")
+    initial_energy_kwh: float = Field(ge=0, description="Battery energy at hour 0, in kWh.")
+    minimum_energy_kwh: float = Field(
+        ge=0, description="Baseline battery reserve required at all hours, in kWh."
+    )
+    max_charge_kwh_per_hour: float = Field(
+        ge=0, description="Maximum grid/solar energy that may charge the battery per hour, in kWh."
+    )
+    max_discharge_kwh_per_hour: float = Field(
+        ge=0, description="Maximum energy the battery may supply per hour, in kWh."
+    )
 
     @field_validator(
         "capacity_kwh",
@@ -98,10 +116,24 @@ class BatteryInput(BaseModel):
 class OptimizationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    scenario_id: str = Field(min_length=1, max_length=200)
-    operator_notes: list[str] = Field(min_length=1, max_length=3)
-    hours: list[HourInput] = Field(min_length=24, max_length=24)
-    battery: BatteryInput
+    scenario_id: str = Field(
+        min_length=1,
+        max_length=200,
+        description="Caller-defined identifier echoed unchanged in the response.",
+    )
+    operator_notes: list[str] = Field(
+        min_length=1,
+        max_length=3,
+        description="One to three untrusted natural-language notes for LLM interpretation. Unrelated notes become no_op.",
+    )
+    hours: list[HourInput] = Field(
+        min_length=24,
+        max_length=24,
+        description="Exactly one entry for every hour 0 through 23; order is normalized by the service.",
+    )
+    battery: BatteryInput = Field(
+        description="Physical battery limits and starting energy for the 24-hour horizon."
+    )
 
     @field_validator("scenario_id")
     @classmethod
@@ -151,35 +183,59 @@ class LLMInterpretationBatch(BaseModel):
 class DirectiveInterpretation(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    note_index: int = Field(ge=0, le=2)
-    applies: bool
-    directive_type: DirectiveType
-    structured_adjustment: dict[str, Any] | None
-    explanation: str
+    note_index: int = Field(ge=0, le=2, description="Zero-based index into operator_notes.")
+    applies: bool = Field(description="Whether this note produced a valid operational directive.")
+    directive_type: DirectiveType = Field(
+        description="The only allowed directive category identified by the LLM."
+    )
+    structured_adjustment: dict[str, Any] | None = Field(
+        description="Validated directive parameters. It is null only for no_op."
+    )
+    explanation: str = Field(
+        description="Brief safe explanation of the interpretation; not used by the optimizer."
+    )
 
 
 class HourlyPlanEntry(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    hour: int = Field(ge=0, le=23)
-    grid_kwh: float = Field(ge=0)
-    solar_used_kwh: float = Field(ge=0)
-    battery_action: BatteryAction
-    battery_kwh: float = Field(ge=0)
-    battery_energy_after_kwh: float = Field(ge=0)
+    hour: int = Field(ge=0, le=23, description="Hour index on the 24-hour clock.")
+    grid_kwh: float = Field(ge=0, description="Grid energy drawn during this hour, in kWh.")
+    solar_used_kwh: float = Field(
+        ge=0, description="Effective solar energy used during this hour, in kWh."
+    )
+    battery_action: BatteryAction = Field(
+        description="Whether the battery charges, discharges, or remains idle."
+    )
+    battery_kwh: float = Field(
+        ge=0, description="Energy charged to or discharged from the battery, in kWh."
+    )
+    battery_energy_after_kwh: float = Field(
+        ge=0, description="Battery state of charge after this hour, in kWh."
+    )
 
 
 class OptimizationResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    scenario_id: str
-    directive_interpretation: list[DirectiveInterpretation]
-    hourly_plan: list[HourlyPlanEntry] = Field(min_length=24, max_length=24)
-    total_grid_kwh: float = Field(ge=0)
-    total_cost_bdt: float = Field(ge=0)
-    peak_grid_kwh: float = Field(ge=0)
-    plan_summary: str
+    scenario_id: str = Field(description="Echo of the request scenario_id.")
+    directive_interpretation: list[DirectiveInterpretation] = Field(
+        description="Exactly one validated interpretation entry for each submitted operator note, in note_index order."
+    )
+    hourly_plan: list[HourlyPlanEntry] = Field(
+        min_length=24,
+        max_length=24,
+        description="Feasible least-cost 24-hour plan, independently replay-validated before return.",
+    )
+    total_grid_kwh: float = Field(ge=0, description="Total 24-hour grid energy drawn, in kWh.")
+    total_cost_bdt: float = Field(ge=0, description="Total 24-hour grid cost, in BDT.")
+    peak_grid_kwh: float = Field(ge=0, description="Largest single-hour grid draw, in kWh.")
+    plan_summary: str = Field(
+        description="Human-readable summary; machine validation should use the structured fields."
+    )
 
 
 class ErrorResponse(BaseModel):
-    detail: str
+    detail: str = Field(
+        description="Safe, client-visible error explanation. Provider internals and secrets are never returned."
+    )
