@@ -135,6 +135,19 @@ optimizer cost, deterministic replay, `/health`, request rejection, and API outp
 Every push and pull request also runs the same lint/test gate and a Docker `/health` smoke test through
 `.github/workflows/quality.yml`.
 
+## Continuous deployment (GitHub Actions to Azure)
+
+The one-time Azure setup uses GitHub OIDC rather than an Azure password or client secret. In Azure Cloud Shell, run:
+
+```bash
+bash deploy/bootstrap-github-oidc.sh
+```
+
+It creates a Microsoft Entra application trusted only for this repository's `main` branch and assigns it Contributor
+only on `gridwise-fest-rg`. Add the three printed identifiers as GitHub repository secrets, then the deploy job in
+`.github/workflows/quality.yml` can publish the commit image and update `gridwise-api-id` only after the quality gate
+passes.
+
 Before submission, use [docs/submission-checklist.md](docs/submission-checklist.md). The required three-minute
 architecture/solution video should follow [docs/video-outline.md](docs/video-outline.md).
 
