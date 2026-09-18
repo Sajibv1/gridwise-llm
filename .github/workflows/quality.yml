@@ -95,6 +95,7 @@ jobs:
               --name gridwise-api-id \
               --resource-group gridwise-fest-rg \
               --image "$IMAGE" \
+              --no-wait \
               --set-env-vars "OPENAI_MODEL=$OPENAI_MODEL" "OPENAI_REASONING_EFFORT=$OPENAI_REASONING_EFFORT" "LLM_TIMEOUT_SECONDS=$LLM_TIMEOUT_SECONDS" "LLM_MAX_RETRIES=$LLM_MAX_RETRIES" "LLM_SEMANTIC_RETRIES=$LLM_SEMANTIC_RETRIES"; then
               exit 0
             fi
