@@ -34,11 +34,3 @@ jobs:
           tags: |
             ${{ steps.image.outputs.name }}:${{ github.ref_name }}
             ${{ steps.image.outputs.name }}:stable
-
-      - name: Make fallback image publicly pullable
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: >-
-          gh api --method PATCH
-          "/users/${GITHUB_REPOSITORY_OWNER}/packages/container/gridwise-llm"
-          -f visibility=public
