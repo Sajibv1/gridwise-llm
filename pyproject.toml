@@ -1,0 +1,15 @@
+[project]
+name = "gridwise-llm"
+version = "0.1.0"
+description = "BUP CSE Fest 2026 GridWise LLM-assisted energy optimization API"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
