@@ -29,7 +29,6 @@ jobs:
       - uses: actions/checkout@v4
       - run: docker build --tag gridwise-llm:ci .
       - run: docker run --detach --name gridwise-llm --publish 8000:8000 gridwise-llm:ci
-      - run: curl --fail --retry 10 --retry-connrefused http://localhost:8000/health
+      - run: curl --fail --retry 15 --retry-delay 1 --retry-all-errors http://localhost:8000/health
       - if: always()
         run: docker rm --force gridwise-llm || true
-
