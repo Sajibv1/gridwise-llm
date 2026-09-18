@@ -116,12 +116,19 @@ def optimize_schedule(
 
     plan: list[HourlyPlanEntry] = []
     for hour in range(HORIZON):
-        charge = _rounded(result.x[_index(CHARGE, hour)])
-        discharge = _rounded(result.x[_index(DISCHARGE, hour)])
-        if charge > EPSILON:
-            action, battery_kwh = BatteryAction.CHARGE, charge
-        elif discharge > EPSILON:
-            action, battery_kwh = BatteryAction.DISCHARGE, discharge
+        # Charge and discharge are separate non-negative LP variables.  They have a
+        # cost-neutral simultaneous-flow direction, so a valid HiGHS solution may
+        # contain both even though the public API represents exactly one battery
+        # action per hour.  Emit their signed net: it preserves every balance,
+        # state transition, directive, rate limit, and the objective value.
+        net_battery = float(result.x[_index(CHARGE, hour)]) - float(
+            result.x[_index(DISCHARGE, hour)]
+        )
+        battery_kwh = _rounded(abs(net_battery))
+        if net_battery > EPSILON:
+            action = BatteryAction.CHARGE
+        elif net_battery < -EPSILON:
+            action = BatteryAction.DISCHARGE
         else:
             action, battery_kwh = BatteryAction.IDLE, 0.0
         plan.append(

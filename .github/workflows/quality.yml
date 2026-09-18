@@ -79,6 +79,8 @@ jobs:
           IMAGE: ${{ steps.image.outputs.name }}@${{ steps.build.outputs.digest }}
           OPENAI_MODEL: gpt-5.4-mini-2026-03-17
           OPENAI_REASONING_EFFORT: low
+          LLM_TIMEOUT_SECONDS: "7"
+          LLM_MAX_RETRIES: "0"
           LLM_SEMANTIC_RETRIES: "1"
         run: |
           az extension add --name containerapp --upgrade --yes
@@ -86,7 +88,7 @@ jobs:
             --name gridwise-api-id \
             --resource-group gridwise-fest-rg \
             --image "$IMAGE" \
-            --set-env-vars "OPENAI_MODEL=$OPENAI_MODEL" "OPENAI_REASONING_EFFORT=$OPENAI_REASONING_EFFORT" "LLM_SEMANTIC_RETRIES=$LLM_SEMANTIC_RETRIES"
+            --set-env-vars "OPENAI_MODEL=$OPENAI_MODEL" "OPENAI_REASONING_EFFORT=$OPENAI_REASONING_EFFORT" "LLM_TIMEOUT_SECONDS=$LLM_TIMEOUT_SECONDS" "LLM_MAX_RETRIES=$LLM_MAX_RETRIES" "LLM_SEMANTIC_RETRIES=$LLM_SEMANTIC_RETRIES"
 
       - name: Check deployed public health endpoint
         run: |

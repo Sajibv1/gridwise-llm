@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import random
 from pathlib import Path
 
 import pytest
@@ -88,3 +89,50 @@ def test_guardrail_rejects_prompt_injection_as_a_non_directive() -> None:
 def test_provider_schema_forbids_open_ended_adjustment_objects() -> None:
     schema = LLMDirectiveCandidate.model_json_schema()
     assert '"additionalProperties": true' not in json.dumps(schema).lower()
+
+
+def test_asymmetric_battery_rate_limits_replay_after_netting_simultaneous_lp_flow() -> None:
+    """A degenerate LP solution may contain simultaneous charge/discharge.
+
+    The response contract permits one action only, so the optimizer must serialize
+    the signed net flow rather than dropping either side of that LP solution.
+    """
+    random_source = random.Random(7)
+    capacity = random_source.choice([100, 220, 500])
+    max_charge = round(random_source.uniform(0, capacity * 0.6), 1)
+    max_discharge = round(random_source.uniform(0, capacity * 0.6), 1)
+    hours = []
+    for hour in range(24):
+        solar = (
+            0.0
+            if hour < 6 or hour > 18
+            else round(random_source.uniform(0, 260), 1)
+        )
+        hours.append(
+            {
+                "hour": hour,
+                "demand_kwh": round(random_source.uniform(20, 400), 1),
+                "solar_kwh": solar,
+                "tariff_bdt_per_kwh": round(random_source.uniform(3, 18), 2),
+            }
+        )
+    raw = {
+        "scenario_id": "asymmetric-rate-regression",
+        "operator_notes": ["note"],
+        "hours": hours,
+        "battery": {
+            "capacity_kwh": capacity,
+            "initial_energy_kwh": round(random_source.uniform(0, capacity), 1),
+            "minimum_energy_kwh": round(random_source.uniform(0, capacity * 0.5), 1),
+            "max_charge_kwh_per_hour": max_charge,
+            "max_discharge_kwh_per_hour": max_discharge,
+        },
+    }
+    request = OptimizationRequest.model_validate(raw)
+    constraints = compile_constraints(request, [])
+
+    result = optimize_schedule(request, constraints)
+
+    # This scenario used to fail at hour 23 when the LP's discharge flow was
+    # silently omitted from the serialized charge action.
+    replay_plan(request, constraints, result.hourly_plan)

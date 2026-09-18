@@ -149,9 +149,9 @@ python scripts/verify_semantic_paraphrases.py http://localhost:8000
 | `OPENAI_API_KEY` | **Yes** | — | OpenAI API key (via `.env` or Azure secret ref) |
 | `OPENAI_MODEL` | No | `gpt-5.4-mini-2026-03-17` | Evaluated, pinned model snapshot |
 | `OPENAI_REASONING_EFFORT` | No | `low` | GPT-5.4 Mini reasoning effort (`none`, `low`, `medium`, `high`, or `xhigh`) |
-| `LLM_TIMEOUT_SECONDS` | No | `10` | Max seconds per LLM call (range: 1–25) |
-| `LLM_MAX_RETRIES` | No | `1` | HTTP-level retries for provider calls (range: 0–2) |
-| `LLM_SEMANTIC_RETRIES` | No | `1` | Repair attempts after local directive validation rejects schema-valid LLM output (range: 0–2) |
+| `LLM_TIMEOUT_SECONDS` | No | `7` | Maximum seconds per model call (range: 1–7) |
+| `LLM_MAX_RETRIES` | No | `0` | Deliberately fixed at zero: SDK retries may honor a long provider `Retry-After` |
+| `LLM_SEMANTIC_RETRIES` | No | `1` | Repair attempts after local directive validation rejects schema-valid model output (range: 0–1) |
 | `LOG_LEVEL` | No | `INFO` | Python logging level |
 
 > **⚠️ Never commit real API keys.** `.env` is in `.gitignore`. Use `.env.example` as a template.
@@ -304,6 +304,8 @@ docker run --rm -p 8000:8000 \
   -e OPENAI_API_KEY=sk-your-key-here \
   -e OPENAI_MODEL=gpt-5.4-mini-2026-03-17 \
   -e OPENAI_REASONING_EFFORT=low \
+  -e LLM_TIMEOUT_SECONDS=7 \
+  -e LLM_MAX_RETRIES=0 \
   -e LLM_SEMANTIC_RETRIES=1 \
   ghcr.io/sajibv1/gridwise-llm@sha256:80d85cf9e5dc9512ef146317ff31428c773915afdd4f95aa24f44b27bcb7dfb9
 ```
