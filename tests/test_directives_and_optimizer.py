@@ -103,11 +103,7 @@ def test_asymmetric_battery_rate_limits_replay_after_netting_simultaneous_lp_flo
     max_discharge = round(random_source.uniform(0, capacity * 0.6), 1)
     hours = []
     for hour in range(24):
-        solar = (
-            0.0
-            if hour < 6 or hour > 18
-            else round(random_source.uniform(0, 260), 1)
-        )
+        solar = 0.0 if hour < 6 or hour > 18 else round(random_source.uniform(0, 260), 1)
         hours.append(
             {
                 "hour": hour,
