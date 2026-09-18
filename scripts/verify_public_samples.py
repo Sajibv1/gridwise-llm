@@ -8,6 +8,11 @@ from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+# Make the documented `python scripts/...` invocation work from a clean clone.
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
+
 from app.directives import compile_constraints
 from app.models import DirectiveInterpretation, HourlyPlanEntry, OptimizationRequest
 from app.replay import replay_plan
